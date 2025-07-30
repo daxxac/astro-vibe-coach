@@ -11,13 +11,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -131,16 +132,16 @@ const Settings = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label className="text-foreground flex items-center gap-2">
-                      <Moon className="w-4 h-4" />
+                      {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                       Тёмная тема
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Включить тёмное оформление
+                      Переключение между светлой и тёмной темой
                     </p>
                   </div>
                   <Switch
-                    checked={darkMode}
-                    onCheckedChange={setDarkMode}
+                    checked={theme === 'dark'}
+                    onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                   />
                 </div>
               </CardContent>
