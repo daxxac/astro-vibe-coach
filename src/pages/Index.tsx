@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { CosmicBackground } from "@/components/CosmicBackground";
+import { CosmicHeader } from "@/components/CosmicHeader";
 import { PersonaCard } from "@/components/PersonaCard";
 import { PredictionCard } from "@/components/PredictionCard";
 import { CreatePersonaModal } from "@/components/CreatePersonaModal";
@@ -425,29 +426,13 @@ const Index = () => {
   return (
     <div className="min-h-screen relative flex flex-col">
       <CosmicBackground />
+      <CosmicHeader 
+        user={user} 
+        profile={profile} 
+        onAuthClick={() => setIsAuthModalOpen(true)} 
+      />
       
       <div className="relative z-10 container mx-auto px-4 py-8 flex-1">
-        {/* Header with auth */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <div /> {/* Spacer */}
-            <h1 className="text-3xl font-semibold text-cosmic">
-              AstroVibe
-            </h1>
-            {user ? (
-              <UserMenu user={user} profile={profile} />
-            ) : (
-              <Button
-                onClick={() => setIsAuthModalOpen(true)}
-                variant="outline"
-                className="btn-nebula border-primary/30"
-              >
-                <LogIn className="w-4 h-4 mr-2" />
-                Войти
-              </Button>
-            )}
-          </div>
-        </div>
 
         {/* Content based on auth state */}
         {!user ? (
