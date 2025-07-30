@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CosmicBackground } from "@/components/CosmicBackground";
 import { PersonaCard } from "@/components/PersonaCard";
 import { PredictionCard } from "@/components/PredictionCard";
@@ -27,29 +27,41 @@ const Index = () => {
 
   // Auth state management
   useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         // Load user profile when logged in
         if (session?.user) {
           setTimeout(() => {
-            loadUserProfile(session.user.id);
-            loadPersonas();
+            if (mounted) {
+              loadUserProfile(session.user.id);
+              loadPersonas();
+            }
           }, 0);
         } else {
-          setProfile(null);
-          setPersonas([]);
-          setSelectedPersona(null);
-          setCurrentPrediction(null);
+          if (mounted) {
+            setProfile(null);
+            setPersonas([]);
+            setSelectedPersona(null);
+            setCurrentPrediction(null);
+          }
         }
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -58,7 +70,10 @@ const Index = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Load user profile
@@ -77,8 +92,7 @@ const Index = () => {
     }
   };
 
-  // Load personas from database
-  const loadPersonas = async () => {
+  const loadPersonas = useCallback(async () => {
     if (!user) {
       console.log('No user, clearing personas');
       setPersonas([]);
@@ -109,10 +123,10 @@ const Index = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [user, selectedPersona, toast]);
 
   // Load today's prediction for selected persona
-  const loadTodaysPrediction = async (personaId: string) => {
+  const loadTodaysPrediction = useCallback(async (personaId: string) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
@@ -120,21 +134,23 @@ const Index = () => {
         .select('*')
         .eq('persona_id', personaId)
         .eq('prediction_date', today)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       
+      console.log('Loaded prediction for today:', data);
       setCurrentPrediction(data || null);
     } catch (error) {
       console.error('Error loading prediction:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (selectedPersona && user) {
+      console.log('Loading prediction for selected persona:', selectedPersona.id);
       loadTodaysPrediction(selectedPersona.id);
     }
-  }, [selectedPersona, user]);
+  }, [selectedPersona, user, loadTodaysPrediction]);
 
   const handleCreatePersona = async (newPersona: any) => {
     if (!user) {
@@ -165,6 +181,11 @@ const Index = () => {
 
       await loadPersonas();
       setSelectedPersona(data);
+      
+      // Also reload prediction for the new persona
+      if (data?.id) {
+        await loadTodaysPrediction(data.id);
+      }
       toast({
         title: "Персонаж создан! ✨",
         description: `${newPersona.name} готов к получению прогнозов`,
@@ -202,6 +223,11 @@ const Index = () => {
 
       await loadPersonas();
       setEditingPersona(null);
+      
+      // Reload prediction if this was the selected persona
+      if (selectedPersona?.id === updatedPersona.id) {
+        await loadTodaysPrediction(updatedPersona.id);
+      }
       toast({
         title: "Персонаж обновлён! ✨",
         description: `${updatedPersona.name} успешно отредактирован`,
