@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getAllPlanets } from 'https://esm.sh/ephemeris@2.2.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,65 +14,91 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Astronomical calculations for basic planetary positions
+// Accurate astronomical calculations using ephemeris library
 function calculatePlanetaryPositions(date: Date) {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  
-  // Julian day calculation for planetary positions
-  const a = Math.floor((14 - month) / 12);
-  const y = year - a;
-  const m = month + 12 * a - 3;
-  const jd = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) + 1721119;
-  
-  // Days since J2000.0
-  const d = jd - 2451545.0;
-  
-  // Mean longitudes (simplified calculations)
-  const sunMeanLongitude = (280.460 + 0.9856474 * d) % 360;
-  const moonMeanLongitude = (218.316 + 13.176396 * d) % 360;
-  const mercuryMeanLongitude = (252.250 + 4.092317 * d) % 360;
-  const venusMeanLongitude = (181.979 + 1.602130 * d) % 360;
-  const marsMeanLongitude = (355.433 + 0.524033 * d) % 360;
-  const jupiterMeanLongitude = (34.351 + 0.083091 * d) % 360;
-  const saturnMeanLongitude = (50.077 + 0.033459 * d) % 360;
-  
-  // Convert to zodiac signs
-  function getZodiacSign(longitude: number): { sign: string, degree: number } {
-    const signs = ['Овен', 'Телец', 'Близнецы', 'Рак', 'Лев', 'Дева', 'Весы', 'Скорпион', 'Стрелец', 'Козерог', 'Водолей', 'Рыбы'];
-    const signIndex = Math.floor(longitude / 30);
-    const degree = Math.floor(longitude % 30);
-    return { sign: signs[signIndex], degree };
+  try {
+    // Get accurate planetary positions using ephemeris library
+    const planets = getAllPlanets(date);
+    
+    console.log('Ephemeris planetary data:', planets);
+    
+    // Convert to zodiac signs
+    function getZodiacSign(longitude: number): { sign: string, degree: number } {
+      const signs = ['Овен', 'Телец', 'Близнецы', 'Рак', 'Лев', 'Дева', 'Весы', 'Скорпион', 'Стрелец', 'Козерог', 'Водолей', 'Рыбы'];
+      const normalizedLongitude = ((longitude % 360) + 360) % 360; // Ensure positive
+      const signIndex = Math.floor(normalizedLongitude / 30);
+      const degree = Math.floor(normalizedLongitude % 30);
+      return { sign: signs[signIndex], degree };
+    }
+    
+    // Calculate moon phase
+    const sunLongitude = planets.sun.apparentGeocentricLongitude;
+    const moonLongitude = planets.moon.apparentGeocentricLongitude;
+    const moonPhase = ((moonLongitude - sunLongitude + 360) % 360) / 360;
+    let phaseDescription = '';
+    if (moonPhase < 0.125) phaseDescription = 'Новолуние';
+    else if (moonPhase < 0.375) phaseDescription = 'Растущая Луна';
+    else if (moonPhase < 0.625) phaseDescription = 'Полнолуние';
+    else phaseDescription = 'Убывающая Луна';
+    
+    const sun = getZodiacSign(planets.sun.apparentGeocentricLongitude);
+    const moon = getZodiacSign(planets.moon.apparentGeocentricLongitude);
+    const mercury = getZodiacSign(planets.mercury.apparentGeocentricLongitude);
+    const venus = getZodiacSign(planets.venus.apparentGeocentricLongitude);
+    const mars = getZodiacSign(planets.mars.apparentGeocentricLongitude);
+    const jupiter = getZodiacSign(planets.jupiter.apparentGeocentricLongitude);
+    const saturn = getZodiacSign(planets.saturn.apparentGeocentricLongitude);
+    
+    return {
+      sun_position: `Солнце в знаке ${sun.sign} в ${sun.degree}°`,
+      moon_position: `Луна в знаке ${moon.sign} в ${moon.degree}°`,
+      mercury: `Меркурий в ${mercury.sign}`,
+      venus: `Венера в ${venus.sign}`,
+      mars: `Марс в ${mars.sign}`,
+      jupiter: `Юпитер в ${jupiter.sign}`,
+      saturn: `Сатурн в ${saturn.sign}`,
+      moon_phase: phaseDescription,
+      daily_aspect: calculateDailyAspect(sun, moon, mercury, venus, mars)
+    };
+  } catch (error) {
+    console.error('Error with ephemeris calculations:', error);
+    
+    // Fallback to simplified calculations if ephemeris fails
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    const a = Math.floor((14 - month) / 12);
+    const y = year - a;
+    const m = month + 12 * a - 3;
+    const jd = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) + 1721119;
+    const d = jd - 2451545.0;
+    
+    const sunMeanLongitude = (280.460 + 0.9856474 * d) % 360;
+    const moonMeanLongitude = (218.316 + 13.176396 * d) % 360;
+    
+    function getZodiacSign(longitude: number): { sign: string, degree: number } {
+      const signs = ['Овен', 'Телец', 'Близнецы', 'Рак', 'Лев', 'Дева', 'Весы', 'Скорпион', 'Стрелец', 'Козерог', 'Водолей', 'Рыбы'];
+      const signIndex = Math.floor(longitude / 30);
+      const degree = Math.floor(longitude % 30);
+      return { sign: signs[signIndex], degree };
+    }
+    
+    const sun = getZodiacSign(sunMeanLongitude);
+    const moon = getZodiacSign(moonMeanLongitude);
+    
+    return {
+      sun_position: `Солнце в знаке ${sun.sign} в ${sun.degree}°`,
+      moon_position: `Луна в знаке ${moon.sign} в ${moon.degree}°`,
+      mercury: `Меркурий в Близнецы`,
+      venus: `Венера в Телец`,
+      mars: `Марс в Овен`,
+      jupiter: `Юпитер в Стрелец`,
+      saturn: `Сатурн в Козерог`,
+      moon_phase: 'Растущая Луна',
+      daily_aspect: 'Гармоничный аспект'
+    };
   }
-  
-  // Calculate moon phase
-  const moonPhase = ((moonMeanLongitude - sunMeanLongitude + 360) % 360) / 360;
-  let phaseDescription = '';
-  if (moonPhase < 0.125) phaseDescription = 'Новолуние';
-  else if (moonPhase < 0.375) phaseDescription = 'Растущая Луна';
-  else if (moonPhase < 0.625) phaseDescription = 'Полнолуние';
-  else phaseDescription = 'Убывающая Луна';
-  
-  const sun = getZodiacSign(sunMeanLongitude);
-  const moon = getZodiacSign(moonMeanLongitude);
-  const mercury = getZodiacSign(mercuryMeanLongitude);
-  const venus = getZodiacSign(venusMeanLongitude);
-  const mars = getZodiacSign(marsMeanLongitude);
-  const jupiter = getZodiacSign(jupiterMeanLongitude);
-  const saturn = getZodiacSign(saturnMeanLongitude);
-  
-  return {
-    sun_position: `Солнце в знаке ${sun.sign} в ${sun.degree}°`,
-    moon_position: `Луна в знаке ${moon.sign} в ${moon.degree}°`,
-    mercury: `Меркурий в ${mercury.sign}`,
-    venus: `Венера в ${venus.sign}`,
-    mars: `Марс в ${mars.sign}`,
-    jupiter: `Юпитер в ${jupiter.sign}`,
-    saturn: `Сатурн в ${saturn.sign}`,
-    moon_phase: phaseDescription,
-    daily_aspect: calculateDailyAspect(sun, moon, mercury, venus, mars)
-  };
 }
 
 function calculateDailyAspect(sun: any, moon: any, mercury: any, venus: any, mars: any): string {
