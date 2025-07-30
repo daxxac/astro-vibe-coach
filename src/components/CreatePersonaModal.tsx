@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,10 @@ interface CreatePersonaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (persona: any) => void;
+  editingPersona?: any;
 }
 
-export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaModalProps) => {
+export const CreatePersonaModal = ({ isOpen, onClose, onSave, editingPersona }: CreatePersonaModalProps) => {
   const [formData, setFormData] = useState({
     name: "",
     birthDate: "",
@@ -27,6 +28,34 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
   });
 
   const [customInterest, setCustomInterest] = useState("");
+
+  // Load editing persona data when modal opens
+  useEffect(() => {
+    if (editingPersona && isOpen) {
+      setFormData({
+        name: editingPersona.name || "",
+        birthDate: editingPersona.birth_date || "",
+        birthTime: editingPersona.birth_time || "",
+        birthPlace: editingPersona.birth_place || "",
+        gender: editingPersona.gender || "",
+        familyStatus: editingPersona.family_status || "",
+        hasChildren: editingPersona.has_children || false,
+        interests: editingPersona.interests || []
+      });
+    } else if (!editingPersona && isOpen) {
+      // Reset form for new persona
+      setFormData({
+        name: "",
+        birthDate: "",
+        birthTime: "",
+        birthPlace: "",
+        gender: "",
+        familyStatus: "",
+        hasChildren: false,
+        interests: []
+      });
+    }
+  }, [editingPersona, isOpen]);
 
   const suggestedInterests = [
     "карьера", "путешествия", "спорт", "семья", "творчество", "музыка",
@@ -94,6 +123,7 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
     const zodiacSign = getZodiacFromDate(formData.birthDate);
 
     const persona = {
+      ...(editingPersona ? { id: editingPersona.id } : {}),
       name: formData.name,
       birth_date: formData.birthDate,
       birth_time: formData.birthTime || null,
@@ -125,7 +155,7 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-cosmic text-xl">
             <Sparkles className="w-5 h-5" />
-            Создать астро-персонажа
+            {editingPersona ? 'Редактировать персонажа' : 'Создать астро-персонажа'}
           </DialogTitle>
         </DialogHeader>
 
@@ -310,14 +340,14 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
             >
               Отмена
             </Button>
-            <Button 
-              type="submit" 
-              className="flex-1 btn-cosmic"
-              disabled={!formData.name || !formData.birthDate || !formData.birthPlace}
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Создать
-            </Button>
+              <Button 
+                type="submit" 
+                className="flex-1 btn-cosmic"
+                disabled={!formData.name || !formData.birthDate || !formData.birthPlace}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {editingPersona ? 'Сохранить' : 'Создать'}
+              </Button>
           </div>
         </form>
       </DialogContent>

@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Heart, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, Heart, Users, Edit, Trash2 } from "lucide-react";
 
 interface PersonaData {
   id: string;
@@ -19,9 +20,11 @@ interface PersonaCardProps {
   persona: PersonaData;
   isSelected: boolean;
   onClick: () => void;
+  onEdit: (persona: PersonaData) => void;
+  onDelete: (persona: PersonaData) => void;
 }
 
-export const PersonaCard = ({ persona, isSelected, onClick }: PersonaCardProps) => {
+export const PersonaCard = ({ persona, isSelected, onClick, onEdit, onDelete }: PersonaCardProps) => {
   const getZodiacEmoji = (sign: string) => {
     const zodiacEmojis: { [key: string]: string } = {
       aries: "♈", taurus: "♉", gemini: "♊", cancer: "♋",
@@ -30,13 +33,30 @@ export const PersonaCard = ({ persona, isSelected, onClick }: PersonaCardProps) 
     };
     return zodiacEmojis[sign?.toLowerCase()] || "✨";
   };
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Не вызываем onClick если клик по кнопкам
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    onClick();
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(persona);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(persona);
+  };
 
   return (
     <Card 
       className={`glass-card p-4 cursor-pointer transition-all duration-300 hover:scale-105 ${
         isSelected ? 'glass-card-intense border-primary/50' : ''
       }`}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -48,9 +68,29 @@ export const PersonaCard = ({ persona, isSelected, onClick }: PersonaCardProps) 
             <p className="text-sm text-muted-foreground capitalize">{persona.zodiac_sign}</p>
           </div>
         </div>
-        {isSelected && (
-          <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
-        )}
+        <div className="flex items-center gap-2">
+          {isSelected && (
+            <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
+          )}
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
+              onClick={handleEdit}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2 text-sm">

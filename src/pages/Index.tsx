@@ -6,6 +6,7 @@ import { CreatePersonaModal } from "@/components/CreatePersonaModal";
 import { AuthModal } from "@/components/AuthModal";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Clock, Sparkles, LogIn } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,8 @@ const Index = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentPrediction, setCurrentPrediction] = useState<any>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
+  const [editingPersona, setEditingPersona] = useState<any>(null);
+  const [deletingPersona, setDeletingPersona] = useState<any>(null);
 
   // Auth state management
   useEffect(() => {
@@ -169,6 +172,91 @@ const Index = () => {
     }
   };
 
+  const handleEditPersona = async (updatedPersona: any) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('personas')
+        .update({
+          name: updatedPersona.name,
+          birth_date: updatedPersona.birth_date,
+          birth_time: updatedPersona.birth_time,
+          birth_place: updatedPersona.birth_place,
+          zodiac_sign: updatedPersona.zodiac_sign,
+          gender: updatedPersona.gender,
+          family_status: updatedPersona.family_status,
+          has_children: updatedPersona.has_children,
+          interests: updatedPersona.interests
+        })
+        .eq('id', updatedPersona.id);
+
+      if (error) throw error;
+
+      await loadPersonas();
+      setEditingPersona(null);
+      toast({
+        title: "Персонаж обновлён! ✨",
+        description: `${updatedPersona.name} успешно отредактирован`,
+      });
+    } catch (error) {
+      console.error('Error updating persona:', error);
+      toast({
+        title: "Ошибка обновления",
+        description: "Не удалось обновить персонажа",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeletePersona = async (persona: any) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('personas')
+        .delete()
+        .eq('id', persona.id);
+
+      if (error) throw error;
+
+      await loadPersonas();
+      
+      // If we deleted the selected persona, clear selection
+      if (selectedPersona?.id === persona.id) {
+        setSelectedPersona(null);
+        setCurrentPrediction(null);
+      }
+      
+      setDeletingPersona(null);
+      toast({
+        title: "Персонаж удалён",
+        description: `${persona.name} больше не в вашем списке`,
+      });
+    } catch (error) {
+      console.error('Error deleting persona:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить персонажа",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const openEditModal = (persona: any) => {
+    setEditingPersona(persona);
+    setIsCreateModalOpen(true);
+  };
+
+  const openDeleteDialog = (persona: any) => {
+    setDeletingPersona(persona);
+  };
+
+  const closeEditModal = () => {
+    setEditingPersona(null);
+    setIsCreateModalOpen(false);
+  };
+
   const handleGeneratePrediction = async () => {
     if (!selectedPersona) return;
     
@@ -298,7 +386,10 @@ const Index = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-foreground">Ваши персонажи</h2>
                 <Button
-                  onClick={() => setIsCreateModalOpen(true)}
+                  onClick={() => {
+                    setEditingPersona(null);
+                    setIsCreateModalOpen(true);
+                  }}
                   className="btn-cosmic"
                   disabled={personas.length >= 3}
                 >
@@ -314,6 +405,8 @@ const Index = () => {
                     persona={persona}
                     isSelected={selectedPersona?.id === persona.id}
                     onClick={() => setSelectedPersona(persona)}
+                    onEdit={openEditModal}
+                    onDelete={openDeleteDialog}
                   />
                 ))}
               </div>
@@ -373,12 +466,37 @@ const Index = () => {
         onSuccess={() => {}}
       />
 
-      {/* Модальное окно создания персонажа */}
+      {/* Create/Edit Persona Modal */}
       <CreatePersonaModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSave={handleCreatePersona}
+        onClose={closeEditModal}
+        onSave={editingPersona ? handleEditPersona : handleCreatePersona}
+        editingPersona={editingPersona}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingPersona} onOpenChange={() => setDeletingPersona(null)}>
+        <AlertDialogContent className="glass-card border-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-cosmic">Удалить персонажа?</AlertDialogTitle>
+            <AlertDialogDescription className="text-foreground">
+              Вы уверены, что хотите удалить персонажа {deletingPersona?.name}? 
+              Это действие нельзя отменить. Все прогнозы для этого персонажа также будут удалены.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="btn-nebula border-secondary/30">
+              Отмена
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleDeletePersona(deletingPersona)}
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
