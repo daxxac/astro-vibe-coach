@@ -6,6 +6,7 @@ import { CreatePersonaModal } from "@/components/CreatePersonaModal";
 import { Button } from "@/components/ui/button";
 import { Plus, Clock, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Моковые данные для демонстрации
 const mockPersonas = [
@@ -67,18 +68,33 @@ const Index = () => {
     });
   };
 
-  const handleGeneratePrediction = () => {
+  const handleGeneratePrediction = async () => {
+    if (!selectedPersona) return;
+    
     setIsLoadingPrediction(true);
     
-    // Имитация загрузки с AI
-    setTimeout(() => {
-      setCurrentPrediction(mockPrediction);
-      setIsLoadingPrediction(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-prediction', {
+        body: { persona: selectedPersona }
+      });
+
+      if (error) throw error;
+
+      setCurrentPrediction(data.prediction);
       toast({
         title: "Прогноз готов! 🔮",
         description: "Звёзды поделились своими тайнами",
       });
-    }, 3000);
+    } catch (error) {
+      console.error('Error generating prediction:', error);
+      toast({
+        title: "Ошибка генерации",
+        description: "Попробуйте позже или проверьте настройки AI",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingPrediction(false);
+    }
   };
 
   const handleFeedback = (type: 'positive' | 'negative' | 'neutral') => {
