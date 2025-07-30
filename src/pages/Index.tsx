@@ -254,6 +254,18 @@ const Index = () => {
 
       </div>
 
+      {/* Footer */}
+      <footer className="relative z-10 text-center py-6 mt-12">
+        <a 
+          href="https://daxxac.dev" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-muted-foreground hover:text-cosmic transition-colors text-sm"
+        >
+          by daxxac.dev
+        </a>
+      </footer>
+
       {/* Модальное окно создания персонажа */}
       <CreatePersonaModal
         isOpen={isCreateModalOpen}

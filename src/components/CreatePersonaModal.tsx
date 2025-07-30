@@ -94,7 +94,6 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
     const zodiacSign = getZodiacFromDate(formData.birthDate);
 
     const persona = {
-      id: Date.now().toString(),
       name: formData.name,
       birth_date: formData.birthDate,
       birth_time: formData.birthTime || null,
@@ -307,7 +306,7 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
               type="button" 
               variant="outline" 
               onClick={onClose}
-              className="flex-1 btn-nebula border-secondary/30"
+              className="flex-1 btn-nebula border-secondary/30 text-foreground"
             >
               Отмена
             </Button>
