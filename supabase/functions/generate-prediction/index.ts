@@ -31,7 +31,11 @@ serve(async (req) => {
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     
-    // Create personalized prompt
+    // Get current astrological data
+    const currentMonth = today.getMonth() + 1;
+    const currentDay = today.getDate();
+    
+    // Create personalized prompt with astrological aspects
     const prompt = `Ты профессиональный астролог. Создай персональный прогноз на сегодня (${today.toLocaleDateString('ru-RU')}) для:
 
 Имя: ${persona.name}
@@ -49,8 +53,13 @@ serve(async (req) => {
 - career: карьера и деньги (2-3 предложения)
 - health: здоровье (2-3 предложения)
 - advice: главный совет дня (1-2 предложения)
+- astrological_aspects: объект с полями:
+  - moon_phase: текущая фаза луны и её влияние
+  - planetary_positions: основные планетарные аспекты на сегодня
+  - daily_energy: энергия дня по астрологии
+  - lucky_elements: счастливые цвета, числа, направления
 
-Учти текущие астрологические аспекты и транзиты. Будь позитивным, но реалистичным. Используй астрологическую терминологию умеренно.`;
+Учти текущие астрологические транзиты, фазу Луны, планетарные аспекты. Будь позитивным, но реалистичным.`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${vertexApiKey}`, {
       method: 'POST',
@@ -94,7 +103,13 @@ serve(async (req) => {
           love: "В отношениях возможны приятные сюрпризы.",
           career: "Отличное время для карьерных инициатив.",
           health: "Обратите внимание на режим сна.",
-          advice: "Доверьтесь интуиции при принятии важных решений."
+          advice: "Доверьтесь интуиции при принятии важных решений.",
+          astrological_aspects: {
+            moon_phase: "Растущая Луна способствует новым начинаниям",
+            planetary_positions: "Венера в гармоничном аспекте с Юпитером",
+            daily_energy: "Высокая креативная энергия",
+            lucky_elements: { colors: ["синий", "серебряный"], numbers: [3, 7], direction: "север" }
+          }
         };
       }
     } catch (parseError) {
@@ -105,7 +120,13 @@ serve(async (req) => {
         love: "В отношениях возможны приятные сюрпризы.", 
         career: "Отличное время для карьерных инициатив.",
         health: "Обратите внимание на режим сна.",
-        advice: "Доверьтесь интуиции при принятии важных решений."
+        advice: "Доверьтесь интуиции при принятии важных решений.",
+        astrological_aspects: {
+          moon_phase: "Растущая Луна способствует новым начинаниям",
+          planetary_positions: "Венера в гармоничном аспекте с Юпитером",
+          daily_energy: "Высокая креативная энергия",
+          lucky_elements: { colors: ["синий", "серебряный"], numbers: [3, 7], direction: "север" }
+        }
       };
     }
 

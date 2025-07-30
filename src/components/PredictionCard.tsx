@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sun, Brain, AlertTriangle, MessageCircle, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sun, Brain, AlertTriangle, MessageCircle, Sparkles, Moon, Stars, Zap, Palette } from "lucide-react";
 
 interface PredictionCardProps {
   prediction?: {
@@ -9,6 +10,16 @@ interface PredictionCardProps {
     career: string;
     health: string;
     advice: string;
+    astrological_aspects?: {
+      moon_phase: string;
+      planetary_positions: string;
+      daily_energy: string;
+      lucky_elements: {
+        colors: string[];
+        numbers: number[];
+        direction: string;
+      };
+    };
   };
   isLoading?: boolean;
   onGenerate?: () => void;
@@ -136,6 +147,64 @@ export const PredictionCard = ({
             <p className="text-sm text-foreground leading-relaxed font-medium">
               {prediction.advice}
             </p>
+          </div>
+        )}
+        
+        {/* Astrological Aspects */}
+        {prediction?.astrological_aspects && (
+          <div className="glass-card p-4 border-purple-500/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Stars className="w-5 h-5 text-purple-400" />
+              <h4 className="font-medium text-purple-400">Астрологические аспекты</h4>
+            </div>
+            
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-2">
+                <Moon className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="font-medium text-blue-400">Фаза Луны:</span>
+                  <p className="text-muted-foreground mt-1">{prediction.astrological_aspects.moon_phase}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <Stars className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="font-medium text-yellow-400">Планетарные влияния:</span>
+                  <p className="text-muted-foreground mt-1">{prediction.astrological_aspects.planetary_positions}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <Zap className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="font-medium text-orange-400">Энергия дня:</span>
+                  <p className="text-muted-foreground mt-1">{prediction.astrological_aspects.daily_energy}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <Palette className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="font-medium text-green-400">Счастливые элементы:</span>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {prediction.astrological_aspects.lucky_elements.colors.map((color, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                        {color}
+                      </Badge>
+                    ))}
+                    {prediction.astrological_aspects.lucky_elements.numbers.map((number, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                        {number}
+                      </Badge>
+                    ))}
+                    <Badge variant="secondary" className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
+                      {prediction.astrological_aspects.lucky_elements.direction}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

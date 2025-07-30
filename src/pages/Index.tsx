@@ -79,7 +79,13 @@ const Index = () => {
 
   // Load personas from database
   const loadPersonas = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user, clearing personas');
+      setPersonas([]);
+      return;
+    }
+    
+    console.log('Loading personas for user:', user.id);
     
     try {
       const { data, error } = await supabase
@@ -90,6 +96,7 @@ const Index = () => {
 
       if (error) throw error;
       
+      console.log('Loaded personas:', data);
       setPersonas(data || []);
       if (data && data.length > 0 && !selectedPersona) {
         setSelectedPersona(data[0]);
