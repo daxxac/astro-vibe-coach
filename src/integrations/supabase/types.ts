@@ -14,7 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      personas: {
+        Row: {
+          birth_date: string
+          birth_place: string
+          birth_time: string | null
+          created_at: string
+          family_status: string
+          gender: string
+          has_children: boolean
+          id: string
+          interests: string[] | null
+          name: string
+          updated_at: string
+          user_id: string
+          zodiac_sign: string
+        }
+        Insert: {
+          birth_date: string
+          birth_place: string
+          birth_time?: string | null
+          created_at?: string
+          family_status: string
+          gender: string
+          has_children?: boolean
+          id?: string
+          interests?: string[] | null
+          name: string
+          updated_at?: string
+          user_id: string
+          zodiac_sign: string
+        }
+        Update: {
+          birth_date?: string
+          birth_place?: string
+          birth_time?: string | null
+          created_at?: string
+          family_status?: string
+          gender?: string
+          has_children?: boolean
+          id?: string
+          interests?: string[] | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+          zodiac_sign?: string
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          advice: string
+          career: string
+          created_at: string
+          feedback: string | null
+          general: string
+          health: string
+          id: string
+          love: string
+          persona_id: string
+          prediction_date: string
+        }
+        Insert: {
+          advice: string
+          career: string
+          created_at?: string
+          feedback?: string | null
+          general: string
+          health: string
+          id?: string
+          love: string
+          persona_id: string
+          prediction_date?: string
+        }
+        Update: {
+          advice?: string
+          career?: string
+          created_at?: string
+          feedback?: string | null
+          general?: string
+          health?: string
+          id?: string
+          love?: string
+          persona_id?: string
+          prediction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
