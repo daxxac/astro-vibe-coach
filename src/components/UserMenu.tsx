@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, LogOut, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface UserMenuProps {
   user: any;
@@ -12,6 +13,7 @@ interface UserMenuProps {
 }
 
 export const UserMenu = ({ user, profile }: UserMenuProps) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignOut = async () => {
@@ -69,12 +71,18 @@ export const UserMenu = ({ user, profile }: UserMenuProps) => {
         
         <DropdownMenuSeparator className="bg-white/10" />
         
-        <DropdownMenuItem className="flex items-center gap-2 text-foreground hover:bg-white/10 cursor-pointer">
+        <DropdownMenuItem 
+          className="flex items-center gap-2 text-foreground hover:bg-white/10 cursor-pointer"
+          onClick={() => navigate("/profile")}
+        >
           <User className="h-4 w-4" />
           <span>Профиль</span>
         </DropdownMenuItem>
         
-        <DropdownMenuItem className="flex items-center gap-2 text-foreground hover:bg-white/10 cursor-pointer">
+        <DropdownMenuItem 
+          className="flex items-center gap-2 text-foreground hover:bg-white/10 cursor-pointer"
+          onClick={() => navigate("/settings")}
+        >
           <Sparkles className="h-4 w-4" />
           <span>Настройки</span>
         </DropdownMenuItem>
