@@ -5,13 +5,13 @@ import { Calendar, MapPin, Heart, Users } from "lucide-react";
 interface PersonaData {
   id: string;
   name: string;
-  birthDate: string;
-  birthTime?: string;
-  birthPlace: string;
-  zodiacSign: string;
+  birth_date: string;
+  birth_time?: string;
+  birth_place: string;
+  zodiac_sign: string;
   gender: string;
-  familyStatus: string;
-  hasChildren: boolean;
+  family_status: string;
+  has_children: boolean;
   interests: string[];
 }
 
@@ -28,7 +28,7 @@ export const PersonaCard = ({ persona, isSelected, onClick }: PersonaCardProps) 
       leo: "♌", virgo: "♍", libra: "♎", scorpio: "♏",
       sagittarius: "♐", capricorn: "♑", aquarius: "♒", pisces: "♓"
     };
-    return zodiacEmojis[sign.toLowerCase()] || "✨";
+    return zodiacEmojis[sign?.toLowerCase()] || "✨";
   };
 
   return (
@@ -41,11 +41,11 @@ export const PersonaCard = ({ persona, isSelected, onClick }: PersonaCardProps) 
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-gradient-cosmic flex items-center justify-center text-2xl">
-            {getZodiacEmoji(persona.zodiacSign)}
+            {getZodiacEmoji(persona.zodiac_sign)}
           </div>
           <div>
             <h3 className="font-semibold text-lg text-cosmic">{persona.name}</h3>
-            <p className="text-sm text-muted-foreground capitalize">{persona.zodiacSign}</p>
+            <p className="text-sm text-muted-foreground capitalize">{persona.zodiac_sign}</p>
           </div>
         </div>
         {isSelected && (
@@ -56,19 +56,19 @@ export const PersonaCard = ({ persona, isSelected, onClick }: PersonaCardProps) 
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="w-4 h-4" />
-          <span>{persona.birthDate}</span>
-          {persona.birthTime && <span>в {persona.birthTime}</span>}
+          <span>{persona.birth_date}</span>
+          {persona.birth_time && <span>в {persona.birth_time}</span>}
         </div>
         
         <div className="flex items-center gap-2 text-muted-foreground">
           <MapPin className="w-4 h-4" />
-          <span>{persona.birthPlace}</span>
+          <span>{persona.birth_place}</span>
         </div>
 
         <div className="flex items-center gap-2 text-muted-foreground">
           <Heart className="w-4 h-4" />
-          <span>{persona.familyStatus}</span>
-          {persona.hasChildren && <Users className="w-4 h-4" />}
+          <span>{persona.family_status}</span>
+          {persona.has_children && <Users className="w-4 h-4" />}
         </div>
       </div>
 
