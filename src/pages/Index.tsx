@@ -3,24 +3,86 @@ import { CosmicBackground } from "@/components/CosmicBackground";
 import { PersonaCard } from "@/components/PersonaCard";
 import { PredictionCard } from "@/components/PredictionCard";
 import { CreatePersonaModal } from "@/components/CreatePersonaModal";
+import { AuthModal } from "@/components/AuthModal";
+import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, Sparkles } from "lucide-react";
+import { Plus, Clock, Sparkles, LogIn } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from '@supabase/supabase-js';
 
 const Index = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [personas, setPersonas] = useState([]);
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentPrediction, setCurrentPrediction] = useState<any>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
 
+  // Auth state management
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Load user profile when logged in
+        if (session?.user) {
+          setTimeout(() => {
+            loadUserProfile(session.user.id);
+            loadPersonas();
+          }, 0);
+        } else {
+          setProfile(null);
+          setPersonas([]);
+          setSelectedPersona(null);
+          setCurrentPrediction(null);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+        loadPersonas();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load user profile
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
+
   // Load personas from database
   const loadPersonas = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('personas')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -59,16 +121,17 @@ const Index = () => {
   };
 
   useEffect(() => {
-    loadPersonas();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPersona) {
+    if (selectedPersona && user) {
       loadTodaysPrediction(selectedPersona.id);
     }
-  }, [selectedPersona]);
+  }, [selectedPersona, user]);
 
   const handleCreatePersona = async (newPersona: any) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     if (personas.length >= 3) {
       toast({
         title: "Лимит персонажей",
@@ -83,7 +146,7 @@ const Index = () => {
         .from('personas')
         .insert([{
           ...newPersona,
-          user_id: 'temp-user' // TODO: заменить на реальный user_id после авторизации
+          user_id: user.id
         }])
         .select()
         .single();
@@ -188,68 +251,105 @@ const Index = () => {
       <CosmicBackground />
       
       <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Заголовок */}
+        {/* Header with auth */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-semibold text-cosmic mb-2">
-            AstroVibe
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <div /> {/* Spacer */}
+            <h1 className="text-3xl font-semibold text-cosmic">
+              AstroVibe
+            </h1>
+            {user ? (
+              <UserMenu user={user} profile={profile} />
+            ) : (
+              <Button
+                onClick={() => setIsAuthModalOpen(true)}
+                variant="outline"
+                className="btn-nebula border-primary/30"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Войти
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Выбор персонажа */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-foreground">Ваши персонажи</h2>
+        {/* Content based on auth state */}
+        {!user ? (
+          <div className="text-center py-16">
+            <Sparkles className="w-20 h-20 mx-auto mb-6 text-cosmic opacity-80" />
+            <h2 className="text-2xl font-semibold text-foreground mb-4">
+              Добро пожаловать в AstroVibe
+            </h2>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              Создавайте астрологических персонажей и получайте персональные прогнозы от звёзд
+            </p>
             <Button
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => setIsAuthModalOpen(true)}
               className="btn-cosmic"
-              disabled={personas.length >= 3}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Добавить
+              <LogIn className="w-4 h-4 mr-2" />
+              Войти или зарегистрироваться
             </Button>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {personas.map((persona) => (
-              <PersonaCard
-                key={persona.id}
-                persona={persona}
-                isSelected={selectedPersona?.id === persona.id}
-                onClick={() => setSelectedPersona(persona)}
-              />
-            ))}
-          </div>
-          
-          {personas.length === 0 && (
-            <div className="text-center py-12">
-              <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground">
-                Создайте своего первого астро-персонажа
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Прогноз дня */}
-        {selectedPersona && (
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-xl font-semibold text-foreground">
-                Прогноз для {selectedPersona.name}
-              </h2>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                <span>Сегодня</span>
+        ) : (
+          <>
+            {/* Выбор персонажа */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-foreground">Ваши персонажи</h2>
+                <Button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="btn-cosmic"
+                  disabled={personas.length >= 3}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Добавить
+                </Button>
               </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {personas.map((persona) => (
+                  <PersonaCard
+                    key={persona.id}
+                    persona={persona}
+                    isSelected={selectedPersona?.id === persona.id}
+                    onClick={() => setSelectedPersona(persona)}
+                  />
+                ))}
+              </div>
+              
+              {personas.length === 0 && (
+                <div className="text-center py-12">
+                  <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">
+                    Создайте своего первого астро-персонажа
+                  </p>
+                </div>
+              )}
             </div>
-            
-            <PredictionCard
-              prediction={currentPrediction}
-              isLoading={isLoadingPrediction}
-              onGenerate={handleGeneratePrediction}
-              onFeedback={handleFeedback}
-            />
-          </div>
+
+            {/* Прогноз дня */}
+            {selectedPersona && (
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Прогноз для {selectedPersona.name}
+                  </h2>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span>Сегодня</span>
+                  </div>
+                </div>
+                
+                <PredictionCard
+                  prediction={currentPrediction}
+                  isLoading={isLoadingPrediction}
+                  onGenerate={handleGeneratePrediction}
+                  onFeedback={handleFeedback}
+                />
+              </div>
+            )}
+          </>
         )}
 
       </div>
@@ -265,6 +365,13 @@ const Index = () => {
           by daxxac.dev
         </a>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => {}}
+      />
 
       {/* Модальное окно создания персонажа */}
       <CreatePersonaModal
