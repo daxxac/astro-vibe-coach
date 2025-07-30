@@ -83,49 +83,65 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error('Vertex AI API error:', response.status, await response.text());
       throw new Error(`Vertex AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const generatedText = data.candidates[0].content.parts[0].text;
+    console.log('Vertex AI response:', JSON.stringify(data, null, 2));
+    
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!generatedText) {
+      console.error('No generated text from Vertex AI');
+      throw new Error('No content generated from AI');
+    }
+    
+    console.log('Generated text:', generatedText);
     
     // Try to parse JSON from the response
     let prediction;
     try {
-      // Extract JSON from the response (sometimes wrapped in markdown)
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        prediction = JSON.parse(jsonMatch[0]);
-      } else {
-        // Fallback if no JSON found
-        prediction = {
-          general: "Сегодня благоприятный день для новых начинаний.",
-          love: "В отношениях возможны приятные сюрпризы.",
-          career: "Отличное время для карьерных инициатив.",
-          health: "Обратите внимание на режим сна.",
-          advice: "Доверьтесь интуиции при принятии важных решений.",
-          astrological_aspects: {
-            moon_phase: "Растущая Луна способствует новым начинаниям",
-            planetary_positions: "Венера в гармоничном аспекте с Юпитером",
-            daily_energy: "Высокая креативная энергия",
-            lucky_elements: { colors: ["синий", "серебряный"], numbers: [3, 7], direction: "север" }
-          }
-        };
+      // First try to parse directly
+      try {
+        prediction = JSON.parse(generatedText);
+      } catch (directParseError) {
+        // Extract JSON from the response (sometimes wrapped in markdown)
+        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          prediction = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
       }
+      
+      // Validate prediction structure
+      if (!prediction.general || !prediction.love || !prediction.career || !prediction.health || !prediction.advice) {
+        throw new Error('Incomplete prediction structure');
+      }
+      
+      console.log('Parsed prediction:', prediction);
+      
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
-      // Fallback prediction
+      console.error('Raw text that failed to parse:', generatedText);
+      
+      // Fallback prediction with structure
       prediction = {
-        general: "Сегодня благоприятный день для новых начинаний.",
-        love: "В отношениях возможны приятные сюрпризы.", 
-        career: "Отличное время для карьерных инициатив.",
-        health: "Обратите внимание на режим сна.",
+        general: "Сегодня благоприятный день для новых начинаний и свежих идей.",
+        love: "В отношениях возможны приятные сюрпризы и гармоничное общение.",
+        career: "Отличное время для карьерных инициатив и финансовых решений.",
+        health: "Обратите внимание на режим сна и физическую активность.",
         advice: "Доверьтесь интуиции при принятии важных решений.",
         astrological_aspects: {
-          moon_phase: "Растущая Луна способствует новым начинаниям",
-          planetary_positions: "Венера в гармоничном аспекте с Юпитером",
-          daily_energy: "Высокая креативная энергия",
-          lucky_elements: { colors: ["синий", "серебряный"], numbers: [3, 7], direction: "север" }
+          moon_phase: "Растущая Луна способствует новым начинаниям и реализации планов",
+          planetary_positions: "Венера в гармоничном аспекте с Юпитером благоприятствует отношениям",
+          daily_energy: "Высокая креативная энергия и позитивные вибрации",
+          lucky_elements: { 
+            colors: ["синий", "серебряный", "зеленый"], 
+            numbers: [3, 7, 12], 
+            direction: "север" 
+          }
         }
       };
     }
@@ -148,10 +164,19 @@ serve(async (req) => {
 
     if (saveError) {
       console.error('Error saving prediction:', saveError);
+      // Don't throw error, just log it - we can still return the prediction
+    } else {
+      console.log('Saved prediction to database:', savedPrediction);
     }
     
+    // Return prediction with astrological aspects (which aren't saved to DB)
+    const finalPrediction = savedPrediction ? {
+      ...savedPrediction,
+      astrological_aspects: prediction.astrological_aspects
+    } : prediction;
+    
     return new Response(JSON.stringify({ 
-      prediction: savedPrediction || prediction 
+      prediction: finalPrediction
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
