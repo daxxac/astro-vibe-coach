@@ -247,10 +247,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative flex flex-col">
       <CosmicBackground />
       
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="relative z-10 container mx-auto px-4 py-8 flex-1">
         {/* Header with auth */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-between mb-4">
@@ -354,8 +354,8 @@ const Index = () => {
 
       </div>
 
-      {/* Footer */}
-      <footer className="relative z-10 text-center py-6 mt-12">
+      {/* Footer - sticky to bottom */}
+      <footer className="relative z-10 text-center py-6 mt-auto border-t border-white/10 bg-black/20 backdrop-blur-sm">
         <a 
           href="https://daxxac.dev" 
           target="_blank" 

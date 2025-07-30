@@ -20,14 +20,14 @@ serve(async (req) => {
 
   try {
     const { persona } = await req.json();
-    const vertexApiKey = Deno.env.get('VERTEX_AI_API_KEY');
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!vertexApiKey) {
-      throw new Error('Vertex AI API key not configured');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
     // Calculate age and zodiac info
-    const birthDate = new Date(persona.birthDate);
+    const birthDate = new Date(persona.birth_date);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     
@@ -36,12 +36,12 @@ serve(async (req) => {
 
 Имя: ${persona.name}
 Возраст: ${age} лет
-Знак зодиака: ${persona.zodiacSign}
+Знак зодиака: ${persona.zodiac_sign}
 Пол: ${persona.gender}
-Семейный статус: ${persona.familyStatus}
-Есть дети: ${persona.hasChildren ? 'да' : 'нет'}
+Семейный статус: ${persona.family_status}
+Есть дети: ${persona.has_children ? 'да' : 'нет'}
 Интересы: ${persona.interests?.join(', ') || 'не указаны'}
-Место рождения: ${persona.birthPlace}
+Место рождения: ${persona.birth_place}
 
 Создай прогноз в формате JSON с полями:
 - general: общий прогноз дня (2-3 предложения)
@@ -52,32 +52,29 @@ serve(async (req) => {
 
 Учти текущие астрологические аспекты и транзиты. Будь позитивным, но реалистичным. Используй астрологическую терминологию умеренно.`;
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + vertexApiKey, {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'Ты опытный астролог, который создает точные и персонализированные прогнозы. Отвечай только в формате JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1024
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Vertex AI API error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const generatedText = data.candidates[0].content.parts[0].text;
+    const generatedText = data.choices[0].message.content;
     
     // Try to parse JSON from the response
     let prediction;
@@ -128,7 +125,9 @@ serve(async (req) => {
       console.error('Error saving prediction:', saveError);
     }
     
-    return new Response(JSON.stringify({ prediction }), {
+    return new Response(JSON.stringify({ 
+      prediction: savedPrediction || prediction 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
