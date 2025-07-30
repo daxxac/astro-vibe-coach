@@ -1,42 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* AstroVibe Design System - Cosmic & Mystical Theme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Cosmic Background Colors */
+    --background: 223 47% 6%;              /* Deep space #0B0F1A */
+    --background-secondary: 225 39% 9%;     /* Darker cosmic #11121C */
+    --foreground: 0 0% 95%;                 /* Starlight white */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Glass Cards */
+    --card: 223 47% 8%;                     /* Semi-transparent cosmic */
+    --card-foreground: 0 0% 90%;
+    --card-glass: 223 47% 12%;              /* Glassmorphism overlay */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Interactive Elements */
+    --popover: 223 47% 10%;
+    --popover-foreground: 0 0% 90%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Mystical Purple Theme */
+    --primary: 270 91% 65%;                 /* Mystical purple #8B5CF6 */
+    --primary-glow: 270 91% 75%;            /* Lighter purple glow */
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Mint Accents */
+    --secondary: 166 76% 65%;               /* Cosmic mint #4ADEAA */
+    --secondary-glow: 166 76% 75%;
+    --secondary-foreground: 223 47% 6%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Silver Highlights */
+    --accent: 210 16% 82%;                  /* Cosmic silver */
+    --accent-glow: 210 16% 88%;
+    --accent-foreground: 223 47% 6%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Muted Cosmic Elements */
+    --muted: 223 47% 15%;
+    --muted-foreground: 217 32% 70%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* System Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders & Inputs */
+    --border: 223 47% 20%;                  /* Subtle cosmic border */
+    --input: 223 47% 12%;                   /* Dark input background */
+    --ring: 270 91% 65%;                    /* Purple focus ring */
 
-    --radius: 0.5rem;
+    /* Cosmic Gradients */
+    --gradient-cosmic: linear-gradient(135deg, hsl(270, 91%, 65%), hsl(166, 76%, 65%));
+    --gradient-nebula: linear-gradient(45deg, hsl(270, 91%, 35%), hsl(223, 47%, 15%));
+    --gradient-aurora: linear-gradient(90deg, hsl(270, 91%, 65%), hsl(166, 76%, 65%), hsl(210, 16%, 82%));
+    --gradient-stardust: radial-gradient(circle, hsl(270, 91%, 65% / 0.3), transparent);
+
+    /* Cosmic Shadows */
+    --shadow-cosmic: 0 25px 50px -12px hsl(270, 91%, 65% / 0.4);
+    --shadow-nebula: 0 20px 40px -10px hsl(166, 76%, 65% / 0.3);
+    --shadow-meteor: 0 10px 30px -5px hsl(210, 16%, 82% / 0.5);
+
+    /* Animation Variables */
+    --animation-duration: 0.3s;
+    --animation-curve: cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 1rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +129,160 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-space overflow-x-hidden;
+    background: var(--gradient-nebula);
+    background-attachment: fixed;
   }
+}
+
+@layer components {
+  /* Cosmic Background Animation */
+  .cosmic-background {
+    @apply relative min-h-screen overflow-hidden;
+    background: var(--gradient-nebula);
+  }
+
+  .cosmic-background::before {
+    content: '';
+    @apply absolute inset-0 opacity-30;
+    background-image: 
+      radial-gradient(circle at 25% 25%, hsl(270, 91%, 65% / 0.1) 0%, transparent 25%),
+      radial-gradient(circle at 75% 75%, hsl(166, 76%, 65% / 0.1) 0%, transparent 25%),
+      radial-gradient(circle at 50% 50%, hsl(210, 16%, 82% / 0.05) 0%, transparent 50%);
+    animation: nebula-drift 20s ease-in-out infinite alternate;
+  }
+
+  /* Glass Morphism Card */
+  .glass-card {
+    @apply bg-card/20 backdrop-blur-md border border-white/10 rounded-2xl;
+    box-shadow: var(--shadow-cosmic);
+  }
+
+  .glass-card-intense {
+    @apply bg-card-glass/40 backdrop-blur-lg border border-white/20 rounded-2xl;
+    box-shadow: var(--shadow-cosmic), inset 0 1px 0 hsl(0 0% 100% / 0.1);
+  }
+
+  /* Cosmic Buttons */
+  .btn-cosmic {
+    @apply bg-primary/20 backdrop-blur-md border border-primary/30 text-primary-foreground;
+    @apply hover:bg-primary/30 hover:border-primary/50 transition-all duration-300;
+    @apply focus:ring-2 focus:ring-primary/50 focus:outline-none;
+    background: var(--gradient-cosmic);
+    box-shadow: var(--shadow-cosmic);
+  }
+
+  .btn-nebula {
+    @apply bg-secondary/20 backdrop-blur-md border border-secondary/30 text-secondary-foreground;
+    @apply hover:bg-secondary/30 hover:border-secondary/50 transition-all duration-300;
+    box-shadow: var(--shadow-nebula);
+  }
+
+  /* Floating Elements */
+  .float {
+    animation: cosmic-float 6s ease-in-out infinite;
+  }
+
+  .float-delayed {
+    animation: cosmic-float 6s ease-in-out infinite;
+    animation-delay: -3s;
+  }
+
+  /* Stardust Particles */
+  .stardust {
+    @apply absolute pointer-events-none;
+    background: var(--gradient-stardust);
+    border-radius: 50%;
+    animation: stardust-twinkle 3s ease-in-out infinite;
+  }
+
+  /* Cosmic Text Effects */
+  .text-cosmic {
+    background: var(--gradient-aurora);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px hsl(270, 91%, 65% / 0.5);
+  }
+
+  /* Input Cosmic Styling */
+  .input-cosmic {
+    @apply bg-input/50 backdrop-blur-md border border-white/20 text-foreground;
+    @apply focus:border-primary/50 focus:ring-2 focus:ring-primary/30;
+    @apply placeholder:text-muted-foreground/70;
+  }
+}
+
+@layer utilities {
+  /* Font Family */
+  .font-space {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+/* Cosmic Animations */
+@keyframes nebula-drift {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.1) rotate(180deg);
+    opacity: 0.4;
+  }
+}
+
+@keyframes cosmic-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-10px) rotate(120deg);
+  }
+  66% {
+    transform: translateY(5px) rotate(240deg);
+  }
+}
+
+@keyframes stardust-twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes shooting-star {
+  0% {
+    transform: translateX(-100px) translateY(-100px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100vw) translateY(100vh);
+    opacity: 0;
+  }
+}
+
+/* Meteor Animation */
+.meteor {
+  @apply absolute w-1 h-1 bg-white rounded-full;
+  box-shadow: 0 0 6px 2px hsl(270, 91%, 65% / 0.8);
+  animation: shooting-star 3s linear infinite;
+}
+
+.meteor:nth-child(odd) {
+  animation-delay: -1s;
+}
+
+.meteor:nth-child(even) {
+  animation-delay: -2s;
 }
