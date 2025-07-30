@@ -31,42 +31,103 @@ const Index = () => {
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (!mounted) return;
         
         console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
         
-        // Load user profile when logged in
-        if (session?.user) {
-          setTimeout(() => {
-            if (mounted) {
-              loadUserProfile(session.user.id);
-              loadPersonas();
+        // Load user data immediately with the user from session
+        if (currentUser) {
+          console.log('Loading data for user:', currentUser.id);
+          try {
+            // Load profile
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentUser.id)
+              .single();
+
+            if (profileError && profileError.code !== 'PGRST116') {
+              console.error('Error loading profile:', profileError);
+            } else {
+              setProfile(profileData);
             }
-          }, 0);
-        } else {
-          if (mounted) {
-            setProfile(null);
-            setPersonas([]);
-            setSelectedPersona(null);
-            setCurrentPrediction(null);
+
+            // Load personas
+            const { data: personasData, error: personasError } = await supabase
+              .from('personas')
+              .select('*')
+              .eq('user_id', currentUser.id)
+              .order('created_at', { ascending: false });
+
+            if (personasError) {
+              console.error('Error loading personas:', personasError);
+            } else {
+              console.log('Loaded personas directly:', personasData);
+              setPersonas(personasData || []);
+              if (personasData && personasData.length > 0) {
+                setSelectedPersona(personasData[0]);
+              }
+            }
+          } catch (error) {
+            console.error('Error loading user data:', error);
           }
+        } else {
+          console.log('No user, clearing data');
+          setProfile(null);
+          setPersonas([]);
+          setSelectedPersona(null);
+          setCurrentPrediction(null);
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       
       console.log('Initial session check:', session?.user?.id);
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-        loadPersonas();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      if (currentUser) {
+        console.log('Loading initial data for user:', currentUser.id);
+        // Same loading logic as above
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error loading profile:', profileError);
+          } else {
+            setProfile(profileData);
+          }
+
+          const { data: personasData, error: personasError } = await supabase
+            .from('personas')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+          if (personasError) {
+            console.error('Error loading personas:', personasError);
+          } else {
+            console.log('Loaded initial personas:', personasData);
+            setPersonas(personasData || []);
+            if (personasData && personasData.length > 0) {
+              setSelectedPersona(personasData[0]);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading initial user data:', error);
+        }
       }
     });
 
@@ -76,8 +137,8 @@ const Index = () => {
     };
   }, []);
 
-  // Load user profile
-  const loadUserProfile = async (userId: string) => {
+  // Load user profile helper function
+  const loadUserProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -90,22 +151,25 @@ const Index = () => {
     } catch (error) {
       console.error('Error loading profile:', error);
     }
-  };
+  }, []);
 
-  const loadPersonas = useCallback(async () => {
-    if (!user) {
-      console.log('No user, clearing personas');
+  // Load personas from database helper function
+  const loadPersonas = useCallback(async (userId?: string) => {
+    const userIdToUse = userId || user?.id;
+    
+    if (!userIdToUse) {
+      console.log('No user ID available, clearing personas');
       setPersonas([]);
       return;
     }
     
-    console.log('Loading personas for user:', user.id);
+    console.log('Loading personas for user:', userIdToUse);
     
     try {
       const { data, error } = await supabase
         .from('personas')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userIdToUse)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
