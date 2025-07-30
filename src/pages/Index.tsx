@@ -28,7 +28,7 @@ const Index = () => {
   // Load user data helper function  
   const loadUserData = useCallback(async (userId: string) => {
     try {
-      console.log('Loading data for user:', userId);
+      console.log('🔄 Starting loadUserData for user:', userId);
       
       // Load profile
       const { data: profileData, error: profileError } = await supabase
@@ -38,12 +38,14 @@ const Index = () => {
         .maybeSingle();
 
       if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error loading profile:', profileError);
+        console.error('❌ Error loading profile:', profileError);
       } else {
+        console.log('✅ Profile loaded:', profileData);
         setProfile(profileData);
       }
 
       // Load personas
+      console.log('🔄 Loading personas for user:', userId);
       const { data: personasData, error: personasError } = await supabase
         .from('personas')
         .select('*')
@@ -51,16 +53,21 @@ const Index = () => {
         .order('created_at', { ascending: false });
 
       if (personasError) {
-        console.error('Error loading personas:', personasError);
+        console.error('❌ Error loading personas:', personasError);
       } else {
-        console.log('Loaded personas:', personasData);
+        console.log('✅ Personas loaded:', personasData);
+        console.log('📊 Personas count:', personasData?.length || 0);
         setPersonas(personasData || []);
         if (personasData && personasData.length > 0) {
+          console.log('🎯 Setting selected persona:', personasData[0]);
           setSelectedPersona(personasData[0]);
+        } else {
+          console.log('⚠️ No personas found, clearing selection');
+          setSelectedPersona(null);
         }
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('💥 Error in loadUserData:', error);
     }
   }, []);
 
@@ -73,18 +80,19 @@ const Index = () => {
       (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state changed:', event, session?.user?.id);
+        console.log('🔐 Auth state changed:', event, 'User ID:', session?.user?.id);
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         
         // Use setTimeout to prevent deadlock
         if (currentUser) {
+          console.log('👤 User logged in, loading data...');
           setTimeout(() => {
             loadUserData(currentUser.id);
           }, 0);
         } else {
-          console.log('No user, clearing data');
+          console.log('👤 No user, clearing data');
           setProfile(null);
           setPersonas([]);
           setSelectedPersona(null);
@@ -97,15 +105,18 @@ const Index = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       
-      console.log('Initial session check:', session?.user?.id);
+      console.log('🔍 Initial session check:', session?.user?.id);
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       
       if (currentUser) {
+        console.log('👤 Found existing user, loading data...');
         setTimeout(() => {
           loadUserData(currentUser.id);
         }, 0);
+      } else {
+        console.log('👤 No existing user found');
       }
     });
 
