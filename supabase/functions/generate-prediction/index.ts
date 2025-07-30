@@ -1,10 +1,17 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize Supabase client
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -102,6 +109,24 @@ serve(async (req) => {
     }
 
     console.log('Generated prediction for:', persona.name);
+    
+    // Save prediction to database
+    const { data: savedPrediction, error: saveError } = await supabase
+      .from('predictions')
+      .insert([{
+        persona_id: persona.id,
+        general: prediction.general,
+        love: prediction.love,
+        career: prediction.career,
+        health: prediction.health,
+        advice: prediction.advice
+      }])
+      .select()
+      .single();
+
+    if (saveError) {
+      console.error('Error saving prediction:', saveError);
+    }
     
     return new Response(JSON.stringify({ prediction }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

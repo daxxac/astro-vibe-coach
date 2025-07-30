@@ -23,13 +23,48 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
     gender: "",
     familyStatus: "",
     hasChildren: false,
-    interests: ""
+    interests: [] as string[]
   });
+
+  const [customInterest, setCustomInterest] = useState("");
+
+  const suggestedInterests = [
+    "карьера", "путешествия", "спорт", "семья", "творчество", "музыка",
+    "книги", "йога", "медитация", "кулинария", "фотография", "искусство",
+    "танцы", "бизнес", "инвестиции", "психология", "наука", "природа"
+  ];
 
   const zodiacSigns = [
     "aries", "taurus", "gemini", "cancer", "leo", "virgo",
     "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces"
   ];
+
+  const toggleInterest = (interest: string) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.includes(interest)
+        ? prev.interests.filter(i => i !== interest)
+        : [...prev.interests, interest]
+    }));
+  };
+
+  const removeInterest = (interest: string) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.filter(i => i !== interest)
+    }));
+  };
+
+  const addCustomInterest = () => {
+    const trimmed = customInterest.trim();
+    if (trimmed && !formData.interests.includes(trimmed)) {
+      setFormData(prev => ({
+        ...prev,
+        interests: [...prev.interests, trimmed]
+      }));
+      setCustomInterest("");
+    }
+  };
 
   const getZodiacFromDate = (dateString: string) => {
     if (!dateString) return "";
@@ -57,16 +92,18 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
     e.preventDefault();
     
     const zodiacSign = getZodiacFromDate(formData.birthDate);
-    const interestsArray = formData.interests
-      .split(",")
-      .map(interest => interest.trim())
-      .filter(interest => interest.length > 0);
 
     const persona = {
       id: Date.now().toString(),
-      ...formData,
-      zodiacSign,
-      interests: interestsArray,
+      name: formData.name,
+      birth_date: formData.birthDate,
+      birth_time: formData.birthTime || null,
+      birth_place: formData.birthPlace,
+      zodiac_sign: zodiacSign,
+      gender: formData.gender,
+      family_status: formData.familyStatus,
+      has_children: formData.hasChildren,
+      interests: formData.interests,
     };
 
     onSave(persona);
@@ -79,7 +116,7 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
       gender: "",
       familyStatus: "",
       hasChildren: false,
-      interests: ""
+      interests: []
     });
   };
 
@@ -189,17 +226,81 @@ export const CreatePersonaModal = ({ isOpen, onClose, onSave }: CreatePersonaMod
             <Label htmlFor="hasChildren" className="text-foreground">Есть дети</Label>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="interests" className="text-foreground">Интересы</Label>
-            <Textarea
-              id="interests"
-              value={formData.interests}
-              onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
-              className="input-cosmic resize-none"
-              placeholder="Карьера, путешествия, спорт... (через запятую)"
-              rows={3}
-            />
-          </div>
+            {/* Интересы */}
+            <div className="space-y-2">
+              <Label htmlFor="interests">Интересы</Label>
+              
+              {/* Подсказки интересов */}
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground mb-2">Популярные варианты:</p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestedInterests.map((interest) => (
+                    <button
+                      key={interest}
+                      type="button"
+                      onClick={() => toggleInterest(interest)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        formData.interests.includes(interest)
+                          ? 'bg-primary/20 border-primary text-primary'
+                          : 'bg-muted/20 border-muted-foreground/20 text-muted-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      {interest}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Выбранные интересы */}
+              {formData.interests.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Выбранные интересы:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.interests.map((interest) => (
+                      <div
+                        key={interest}
+                        className="flex items-center gap-1 px-3 py-1 bg-primary/20 border border-primary/30 text-primary text-xs rounded-full"
+                      >
+                        <span>{interest}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeInterest(interest)}
+                          className="ml-1 text-primary hover:text-primary/70"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Поле для ввода собственных интересов */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customInterest}
+                  onChange={(e) => setCustomInterest(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addCustomInterest();
+                    }
+                  }}
+                  placeholder="Добавить свой интерес..."
+                  className="flex-1 px-3 py-2 bg-background/50 border border-white/20 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <Button
+                  type="button"
+                  onClick={addCustomInterest}
+                  disabled={!customInterest.trim()}
+                  size="sm"
+                  className="px-3"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
 
           <div className="flex gap-3 pt-4">
             <Button 

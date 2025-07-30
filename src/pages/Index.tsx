@@ -8,49 +8,67 @@ import { Plus, Clock, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Моковые данные для демонстрации
-const mockPersonas = [
-  {
-    id: "1",
-    name: "Анна",
-    birthDate: "1995-03-15",
-    birthTime: "14:30",
-    birthPlace: "Москва, Россия",
-    zodiacSign: "pisces",
-    gender: "female",
-    familyStatus: "relationship",
-    hasChildren: false,
-    interests: ["карьера", "путешествия", "йога"]
-  },
-  {
-    id: "2", 
-    name: "Максим",
-    birthDate: "1988-07-22",
-    birthPlace: "Санкт-Петербург, Россия",
-    zodiacSign: "leo",
-    gender: "male",
-    familyStatus: "married",
-    hasChildren: true,
-    interests: ["бизнес", "спорт", "семья", "инвестиции"]
-  }
-];
-
-const mockPrediction = {
-  general: "Сегодня благоприятный день для новых начинаний. Планеты располагают к творческим проектам и важным решениям.",
-  love: "В отношениях возможны приятные сюрпризы. Венера в вашем секторе усиливает романтические вибрации.",
-  career: "Отличное время для карьерных инициатив. Меркурий поддержит важные переговоры и презентации.",
-  health: "Обратите внимание на режим сна. Марс может давать излишнюю энергию - направьте её в спорт.",
-  advice: "Доверьтесь интуиции при принятии важных решений. Луна в вашем знаке усиливает внутреннее знание."
-};
-
 const Index = () => {
-  const [personas, setPersonas] = useState(mockPersonas);
-  const [selectedPersona, setSelectedPersona] = useState(mockPersonas[0]);
+  const [personas, setPersonas] = useState([]);
+  const [selectedPersona, setSelectedPersona] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [currentPrediction, setCurrentPrediction] = useState<any>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
 
-  const handleCreatePersona = (newPersona: any) => {
+  // Load personas from database
+  const loadPersonas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('personas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setPersonas(data || []);
+      if (data && data.length > 0 && !selectedPersona) {
+        setSelectedPersona(data[0]);
+      }
+    } catch (error) {
+      console.error('Error loading personas:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить персонажей",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Load today's prediction for selected persona
+  const loadTodaysPrediction = async (personaId: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('predictions')
+        .select('*')
+        .eq('persona_id', personaId)
+        .eq('prediction_date', today)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      setCurrentPrediction(data || null);
+    } catch (error) {
+      console.error('Error loading prediction:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadPersonas();
+  }, []);
+
+  useEffect(() => {
+    if (selectedPersona) {
+      loadTodaysPrediction(selectedPersona.id);
+    }
+  }, [selectedPersona]);
+
+  const handleCreatePersona = async (newPersona: any) => {
     if (personas.length >= 3) {
       toast({
         title: "Лимит персонажей",
@@ -60,12 +78,32 @@ const Index = () => {
       return;
     }
     
-    setPersonas([...personas, newPersona]);
-    setSelectedPersona(newPersona);
-    toast({
-      title: "Персонаж создан! ✨",
-      description: `${newPersona.name} готов к получению прогнозов`,
-    });
+    try {
+      const { data, error } = await supabase
+        .from('personas')
+        .insert([{
+          ...newPersona,
+          user_id: 'temp-user' // TODO: заменить на реальный user_id после авторизации
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await loadPersonas();
+      setSelectedPersona(data);
+      toast({
+        title: "Персонаж создан! ✨",
+        description: `${newPersona.name} готов к получению прогнозов`,
+      });
+    } catch (error) {
+      console.error('Error creating persona:', error);
+      toast({
+        title: "Ошибка создания",
+        description: "Не удалось создать персонажа",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleGeneratePrediction = async () => {
@@ -97,17 +135,52 @@ const Index = () => {
     }
   };
 
-  const handleFeedback = (type: 'positive' | 'negative' | 'neutral') => {
-    const feedbackMessages = {
-      positive: "Спасибо! Мы учтём это для будущих прогнозов ⭐",
-      negative: "Мы улучшим точность прогнозов 🎯", 
-      neutral: "Ваш отзыв поможет нам стать лучше 🌟"
-    };
-    
-    toast({
-      title: "Отзыв получен!",
-      description: feedbackMessages[type],
-    });
+  const handleFeedback = async (type: 'positive' | 'negative' | 'neutral') => {
+    if (!currentPrediction?.id && !selectedPersona) return;
+
+    try {
+      // If prediction has an ID, update it; otherwise find today's prediction
+      let predictionId = currentPrediction?.id;
+      
+      if (!predictionId && selectedPersona) {
+        const today = new Date().toISOString().split('T')[0];
+        const { data } = await supabase
+          .from('predictions')
+          .select('id')
+          .eq('persona_id', selectedPersona.id)
+          .eq('prediction_date', today)
+          .single();
+        
+        predictionId = data?.id;
+      }
+
+      if (predictionId) {
+        const { error } = await supabase
+          .from('predictions')
+          .update({ feedback: type })
+          .eq('id', predictionId);
+
+        if (error) throw error;
+      }
+
+      const feedbackMessages = {
+        positive: "Спасибо! Мы учтём это для будущих прогнозов ⭐",
+        negative: "Мы улучшим точность прогнозов 🎯", 
+        neutral: "Ваш отзыв поможет нам стать лучше 🌟"
+      };
+      
+      toast({
+        title: "Отзыв получен!",
+        description: feedbackMessages[type],
+      });
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить отзыв",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -179,12 +252,6 @@ const Index = () => {
           </div>
         )}
 
-        {/* Нижний раздел */}
-        <div className="text-center py-8">
-          <p className="text-sm text-muted-foreground">
-            Для полного функционала подключите Supabase и настройте AI-генерацию прогнозов
-          </p>
-        </div>
       </div>
 
       {/* Модальное окно создания персонажа */}
