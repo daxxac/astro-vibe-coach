@@ -25,6 +25,45 @@ const Index = () => {
   const [editingPersona, setEditingPersona] = useState<any>(null);
   const [deletingPersona, setDeletingPersona] = useState<any>(null);
 
+  // Load user data helper function  
+  const loadUserData = useCallback(async (userId: string) => {
+    try {
+      console.log('Loading data for user:', userId);
+      
+      // Load profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error loading profile:', profileError);
+      } else {
+        setProfile(profileData);
+      }
+
+      // Load personas
+      const { data: personasData, error: personasError } = await supabase
+        .from('personas')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (personasError) {
+        console.error('Error loading personas:', personasError);
+      } else {
+        console.log('Loaded personas:', personasData);
+        setPersonas(personasData || []);
+        if (personasData && personasData.length > 0) {
+          setSelectedPersona(personasData[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  }, []);
+
   // Auth state management
   useEffect(() => {
     let mounted = true;
@@ -39,42 +78,8 @@ const Index = () => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         
-        // Load user data immediately with the user from session
         if (currentUser) {
-          console.log('Loading data for user:', currentUser.id);
-          try {
-            // Load profile
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentUser.id)
-              .single();
-
-            if (profileError && profileError.code !== 'PGRST116') {
-              console.error('Error loading profile:', profileError);
-            } else {
-              setProfile(profileData);
-            }
-
-            // Load personas
-            const { data: personasData, error: personasError } = await supabase
-              .from('personas')
-              .select('*')
-              .eq('user_id', currentUser.id)
-              .order('created_at', { ascending: false });
-
-            if (personasError) {
-              console.error('Error loading personas:', personasError);
-            } else {
-              console.log('Loaded personas directly:', personasData);
-              setPersonas(personasData || []);
-              if (personasData && personasData.length > 0) {
-                setSelectedPersona(personasData[0]);
-              }
-            }
-          } catch (error) {
-            console.error('Error loading user data:', error);
-          }
+          await loadUserData(currentUser.id);
         } else {
           console.log('No user, clearing data');
           setProfile(null);
@@ -95,39 +100,7 @@ const Index = () => {
       setUser(currentUser);
       
       if (currentUser) {
-        console.log('Loading initial data for user:', currentUser.id);
-        // Same loading logic as above
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
-
-          if (profileError && profileError.code !== 'PGRST116') {
-            console.error('Error loading profile:', profileError);
-          } else {
-            setProfile(profileData);
-          }
-
-          const { data: personasData, error: personasError } = await supabase
-            .from('personas')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-
-          if (personasError) {
-            console.error('Error loading personas:', personasError);
-          } else {
-            console.log('Loaded initial personas:', personasData);
-            setPersonas(personasData || []);
-            if (personasData && personasData.length > 0) {
-              setSelectedPersona(personasData[0]);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading initial user data:', error);
-        }
+        await loadUserData(currentUser.id);
       }
     });
 
@@ -135,7 +108,7 @@ const Index = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserData]);
 
   // Load user profile helper function
   const loadUserProfile = useCallback(async (userId: string) => {
