@@ -100,13 +100,10 @@ const Index = () => {
       
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Заголовок */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-cosmic mb-4 text-glow">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-semibold text-cosmic mb-2">
             AstroVibe
           </h1>
-          <p className="text-lg text-muted-foreground">
-            Персональный AI-астрокоуч для вашей души ✨
-          </p>
         </div>
 
         {/* Выбор персонажа */}
