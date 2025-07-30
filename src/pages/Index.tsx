@@ -87,8 +87,9 @@ const Index = () => {
         
         // Use setTimeout to prevent deadlock
         if (currentUser) {
-          console.log('👤 User logged in, loading data...');
+          console.log('👤 User logged in, setting timeout to load data...');
           setTimeout(() => {
+            console.log('⏰ Timeout executed, calling loadUserData...');
             loadUserData(currentUser.id);
           }, 0);
         } else {
@@ -111,8 +112,9 @@ const Index = () => {
       setUser(currentUser);
       
       if (currentUser) {
-        console.log('👤 Found existing user, loading data...');
+        console.log('👤 Found existing user, setting timeout to load data...');
         setTimeout(() => {
+          console.log('⏰ Initial timeout executed, calling loadUserData...');
           loadUserData(currentUser.id);
         }, 0);
       } else {
