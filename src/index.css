@@ -165,11 +165,11 @@
 
   /* Cosmic Buttons */
   .btn-cosmic {
-    @apply bg-primary/20 backdrop-blur-md border border-primary/30 text-primary-foreground;
-    @apply hover:bg-primary/30 hover:border-primary/50 transition-all duration-300;
+    @apply relative bg-gradient-to-r from-primary to-secondary text-white font-medium;
+    @apply hover:from-primary/90 hover:to-secondary/90 transition-all duration-300;
     @apply focus:ring-2 focus:ring-primary/50 focus:outline-none;
-    background: var(--gradient-cosmic);
-    box-shadow: var(--shadow-cosmic);
+    @apply shadow-lg shadow-primary/25;
+    border: 1px solid hsl(270, 91%, 65% / 0.3);
   }
 
   .btn-nebula {

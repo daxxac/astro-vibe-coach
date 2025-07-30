@@ -70,7 +70,7 @@ const Index = () => {
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return;
         
         console.log('Auth state changed:', event, session?.user?.id);
@@ -78,8 +78,11 @@ const Index = () => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         
+        // Use setTimeout to prevent deadlock
         if (currentUser) {
-          await loadUserData(currentUser.id);
+          setTimeout(() => {
+            loadUserData(currentUser.id);
+          }, 0);
         } else {
           console.log('No user, clearing data');
           setProfile(null);
@@ -91,7 +94,7 @@ const Index = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       
       console.log('Initial session check:', session?.user?.id);
@@ -100,7 +103,9 @@ const Index = () => {
       setUser(currentUser);
       
       if (currentUser) {
-        await loadUserData(currentUser.id);
+        setTimeout(() => {
+          loadUserData(currentUser.id);
+        }, 0);
       }
     });
 
