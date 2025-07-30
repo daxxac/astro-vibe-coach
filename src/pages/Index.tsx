@@ -485,26 +485,35 @@ const Index = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {personas.map((persona) => (
-                  <PersonaCard
-                    key={persona.id}
-                    persona={persona}
-                    isSelected={selectedPersona?.id === persona.id}
-                    onClick={() => setSelectedPersona(persona)}
-                    onEdit={openEditModal}
-                    onDelete={openDeleteDialog}
-                  />
-                ))}
+                {(() => {
+                  console.log('🎨 Rendering personas:', personas, 'Count:', personas.length);
+                  return personas.map((persona) => {
+                    console.log('🎭 Rendering persona:', persona.name, persona.id);
+                    return (
+                      <PersonaCard
+                        key={persona.id}
+                        persona={persona}
+                        isSelected={selectedPersona?.id === persona.id}
+                        onClick={() => setSelectedPersona(persona)}
+                        onEdit={openEditModal}
+                        onDelete={openDeleteDialog}
+                      />
+                    );
+                  });
+                })()}
               </div>
               
-              {personas.length === 0 && (
-                <div className="text-center py-12">
-                  <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">
-                    Создайте своего первого астро-персонажа
-                  </p>
-                </div>
-              )}
+              {personas.length === 0 && (() => {
+                console.log('⚠️ No personas to display, user:', user?.id, 'personas array:', personas);
+                return (
+                  <div className="text-center py-12">
+                    <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <p className="text-muted-foreground">
+                      Создайте своего первого астро-персонажа
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Прогноз дня */}
