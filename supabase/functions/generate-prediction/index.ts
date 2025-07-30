@@ -20,10 +20,10 @@ serve(async (req) => {
 
   try {
     const { persona } = await req.json();
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const vertexApiKey = Deno.env.get('VERTEX_AI_API_KEY');
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!vertexApiKey) {
+      throw new Error('Vertex AI API key not configured');
     }
 
     // Calculate age and zodiac info
@@ -52,29 +52,33 @@ serve(async (req) => {
 
 Учти текущие астрологические аспекты и транзиты. Будь позитивным, но реалистичным. Используй астрологическую терминологию умеренно.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${vertexApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'Ты опытный астролог, который создает точные и персонализированные прогнозы. Отвечай только в формате JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 1024
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+          responseMimeType: "application/json"
+        }
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Vertex AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const generatedText = data.choices[0].message.content;
+    const generatedText = data.candidates[0].content.parts[0].text;
     
     // Try to parse JSON from the response
     let prediction;
