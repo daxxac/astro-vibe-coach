@@ -492,7 +492,7 @@ const Index = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="btn-nebula border-secondary/30">
+            <AlertDialogCancel className="btn-nebula border-secondary/30 text-foreground">
               Отмена
             </AlertDialogCancel>
             <AlertDialogAction 

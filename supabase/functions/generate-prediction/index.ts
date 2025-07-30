@@ -35,31 +35,51 @@ serve(async (req) => {
     const currentMonth = today.getMonth() + 1;
     const currentDay = today.getDate();
     
-    // Create personalized prompt with astrological aspects
-    const prompt = `Ты профессиональный астролог. Создай персональный прогноз на сегодня (${today.toLocaleDateString('ru-RU')}) для:
+    // Create professional astrological prompt
+    const prompt = `Ты — профессиональный астролог.
 
-Имя: ${persona.name}
-Возраст: ${age} лет
-Знак зодиака: ${persona.zodiac_sign}
-Пол: ${persona.gender}
-Семейный статус: ${persona.family_status}
-Есть дети: ${persona.has_children ? 'да' : 'нет'}
-Интересы: ${persona.interests?.join(', ') || 'не указаны'}
-Место рождения: ${persona.birth_place}
+Пожалуйста, сгенерируй **астрологическую сводку на сегодня** (${today.toLocaleDateString('ru-RU')}) для следующего пользователя, основываясь на его дате и времени рождения, а также городе рождения.
 
-Создай прогноз в формате JSON с полями:
-- general: общий прогноз дня (2-3 предложения)
-- love: любовь и отношения (2-3 предложения) 
-- career: карьера и деньги (2-3 предложения)
-- health: здоровье (2-3 предложения)
-- advice: главный совет дня (1-2 предложения)
-- astrological_aspects: объект с полями:
-  - moon_phase: текущая фаза луны и её влияние
-  - planetary_positions: основные планетарные аспекты на сегодня
-  - daily_energy: энергия дня по астрологии
-  - lucky_elements: счастливые цвета, числа, направления
+Если у тебя есть доступ к точным эфемеридам — укажи реальные положения планет. Если нет — смоделируй вероятное расположение планет, характерное для этой даты, основываясь на типичных астрологических паттернах.
 
-Учти текущие астрологические транзиты, фазу Луны, планетарные аспекты. Будь позитивным, но реалистичным.`;
+Параметры пользователя:
+- Имя: ${persona.name}
+- Дата рождения: ${persona.birth_date}
+- Время рождения: ${persona.birth_time || 'не указано'}
+- Город рождения: ${persona.birth_place}
+- Знак зодиака: ${persona.zodiac_sign}
+- Возраст: ${age} лет
+
+Формат ответа JSON:
+{
+  "astrological_chart": {
+    "sun_position": "Солнце в знаке [знак] в [градус]°",
+    "moon_position": "Луна в знаке [знак] в [градус]°", 
+    "mercury": "Меркурий в [знак]",
+    "venus": "Венера в [знак]",
+    "mars": "Марс в [знак]",
+    "jupiter": "Юпитер в [знак]",
+    "saturn": "Сатурн в [знак]",
+    "daily_aspect": "основной аспект дня (например, квадрат Венеры и Урана)"
+  },
+  "general": "общий прогноз дня (2-3 предложения)",
+  "love": "любовь и отношения (2-3 предложения)",
+  "career": "карьера и деньги (2-3 предложения)", 
+  "health": "здоровье (2-3 предложения)",
+  "advice": "главный совет дня (1-2 предложения)",
+  "astrological_aspects": {
+    "moon_phase": "текущая фаза луны и её влияние",
+    "planetary_positions": "основные планетарные аспекты на сегодня",
+    "daily_energy": "энергия дня по астрологии", 
+    "lucky_elements": {
+      "colors": ["цвет1", "цвет2"],
+      "numbers": [число1, число2, число3],
+      "direction": "направление"
+    }
+  }
+}
+
+Напиши профессионально и точно, используя реальные астрологические термины и положения планет для ${today.toLocaleDateString('ru-RU')}.`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${vertexApiKey}`, {
       method: 'POST',
@@ -126,8 +146,18 @@ serve(async (req) => {
       console.error('JSON parsing error:', parseError);
       console.error('Raw text that failed to parse:', generatedText);
       
-      // Fallback prediction with structure
+      // Fallback prediction with professional astrological structure
       prediction = {
+        astrological_chart: {
+          sun_position: "Солнце в Водолее в 10°",
+          moon_position: "Луна в Раке в 23°", 
+          mercury: "Меркурий в Козероге",
+          venus: "Венера в Стрельце",
+          mars: "Марс в Близнецах",
+          jupiter: "Юпитер в Тельце",
+          saturn: "Сатурн в Рыбах",
+          daily_aspect: "тригон Луны и Венеры — гармония в отношениях"
+        },
         general: "Сегодня благоприятный день для новых начинаний и свежих идей.",
         love: "В отношениях возможны приятные сюрпризы и гармоничное общение.",
         career: "Отличное время для карьерных инициатив и финансовых решений.",
@@ -172,6 +202,7 @@ serve(async (req) => {
     // Return prediction with astrological aspects (which aren't saved to DB)
     const finalPrediction = savedPrediction ? {
       ...savedPrediction,
+      astrological_chart: prediction.astrological_chart,
       astrological_aspects: prediction.astrological_aspects
     } : prediction;
     

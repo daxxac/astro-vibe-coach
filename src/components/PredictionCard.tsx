@@ -10,6 +10,16 @@ interface PredictionCardProps {
     career: string;
     health: string;
     advice: string;
+    astrological_chart?: {
+      sun_position: string;
+      moon_position: string;
+      mercury: string;
+      venus: string;
+      mars: string;
+      jupiter: string;
+      saturn: string;
+      daily_aspect: string;
+    };
     astrological_aspects?: {
       moon_phase: string;
       planetary_positions: string;
@@ -147,6 +157,56 @@ export const PredictionCard = ({
             <p className="text-sm text-foreground leading-relaxed font-medium">
               {prediction.advice}
             </p>
+          </div>
+        )}
+        
+        {/* Astrological Chart */}
+        {prediction?.astrological_chart && (
+          <div className="glass-card p-4 border-cosmic/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Sun className="w-5 h-5 text-cosmic" />
+              <h4 className="font-medium text-cosmic">Астрологическая карта дня</h4>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sun className="w-4 h-4 text-yellow-500" />
+                  <span className="text-muted-foreground">{prediction.astrological_chart.sun_position}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Moon className="w-4 h-4 text-blue-400" />
+                  <span className="text-muted-foreground">{prediction.astrological_chart.moon_position}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-orange-400 text-sm">☿</span>
+                  <span className="text-muted-foreground">{prediction.astrological_chart.mercury}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-pink-400 text-sm">♀</span>
+                  <span className="text-muted-foreground">{prediction.astrological_chart.venus}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400 text-sm">♂</span>
+                  <span className="text-muted-foreground">{prediction.astrological_chart.mars}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-purple-400 text-sm">♃</span>
+                  <span className="text-muted-foreground">{prediction.astrological_chart.jupiter}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm">♄</span>
+                  <span className="text-muted-foreground">{prediction.astrological_chart.saturn}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Stars className="w-4 h-4 text-cosmic" />
+                  <span className="text-muted-foreground">{prediction.astrological_chart.daily_aspect}</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
         
