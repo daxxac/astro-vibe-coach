@@ -120,25 +120,59 @@ serve(async (req) => {
   }
 
   try {
-    const { persona } = await req.json();
+    const { persona, prediction_date } = await req.json();
     const vertexApiKey = Deno.env.get('VERTEX_AI_API_KEY');
 
     if (!vertexApiKey) {
       throw new Error('Vertex AI API key not configured');
     }
 
-    // Calculate real astrological positions
+    // Use provided date or today
+    const targetDate = prediction_date ? new Date(prediction_date) : new Date();
     const today = new Date();
-    const planetaryPositions = calculatePlanetaryPositions(today);
+    
+    // Check if it's a future date
+    if (targetDate.toDateString() !== today.toDateString() && targetDate < today) {
+      throw new Error('Cannot generate predictions for past dates');
+    }
+
+    // Check daily generation limit for future dates (not for viewing history)
+    if (targetDate >= today) {
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Check current limit
+      const { data: limitData } = await supabase
+        .from('daily_generation_limits')
+        .select('count')
+        .eq('user_id', persona.user_id)
+        .eq('generation_date', todayStr)
+        .single();
+
+      if (limitData && limitData.count >= 3) {
+        throw new Error('Daily generation limit reached (3 predictions per day)');
+      }
+
+      // Update or insert limit count
+      await supabase
+        .from('daily_generation_limits')
+        .upsert({
+          user_id: persona.user_id,
+          generation_date: todayStr,
+          count: (limitData?.count || 0) + 1
+        });
+    }
+
+    // Calculate real astrological positions for target date
+    const planetaryPositions = calculatePlanetaryPositions(targetDate);
     
     // Calculate age and zodiac info
     const birthDate = new Date(persona.birth_date);
-    const age = today.getFullYear() - birthDate.getFullYear();
+    const age = targetDate.getFullYear() - birthDate.getFullYear();
     
     // Create artistic astrological prompt with poetic style
     const prompt = `Ты - астролог-поэт, создающий прогнозы в потоке сознания. Используй длинные, извилистые предложения, где мысли перетекают одна в другую через запятые и союзы, создавая единый поток размышлений. Пиши эмоционально, с внутренними ассоциациями и философскими отступлениями.
 
-Создай астрологический прогноз на сегодня (${today.toLocaleDateString('ru-RU')}) для ${persona.name}, используя ТОЧНЫЕ положения планет.
+Создай астрологический прогноз на ${targetDate.toLocaleDateString('ru-RU')} для ${persona.name}, используя ТОЧНЫЕ положения планет.
 
 🔭 **РЕАЛЬНЫЕ ПОЛОЖЕНИЯ ПЛАНЕТ НА СЕГОДНЯ:**
 - ${planetaryPositions.sun_position}
@@ -311,7 +345,7 @@ serve(async (req) => {
         career: prediction.career,
         health: prediction.health,
         advice: prediction.advice,
-        prediction_date: today.toISOString().split('T')[0]
+        prediction_date: targetDate.toISOString().split('T')[0]
       }])
       .select()
       .single();

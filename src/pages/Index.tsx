@@ -3,6 +3,7 @@ import { CosmicBackground } from "@/components/CosmicBackground";
 import { CosmicHeader } from "@/components/CosmicHeader";
 import { PersonaCard } from "@/components/PersonaCard";
 import { PredictionCard } from "@/components/PredictionCard";
+import { PredictionCalendar } from "@/components/PredictionCalendar";
 import { CreatePersonaModal } from "@/components/CreatePersonaModal";
 import { AuthModal } from "@/components/AuthModal";
 import { UserMenu } from "@/components/UserMenu";
@@ -25,6 +26,8 @@ const Index = () => {
   const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
   const [editingPersona, setEditingPersona] = useState<any>(null);
   const [deletingPersona, setDeletingPersona] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [predictions, setPredictions] = useState<{[key: string]: any}>({});
 
   // Load user data helper function  
   const loadUserData = useCallback(async (userId: string) => {
@@ -129,22 +132,6 @@ const Index = () => {
     };
   }, [loadUserData]);
 
-  // Load user profile helper function
-  const loadUserProfile = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    }
-  }, []);
-
   // Load personas from database helper function
   const loadPersonas = useCallback(async (userId?: string) => {
     const userIdToUse = userId || user?.id;
@@ -181,32 +168,53 @@ const Index = () => {
     }
   }, [user, selectedPersona, toast]);
 
-  // Load today's prediction for selected persona
-  const loadTodaysPrediction = useCallback(async (personaId: string) => {
+  // Load prediction for selected date and persona
+  const loadPrediction = async (personaId: string, date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    const cacheKey = `${personaId}-${dateStr}`;
+    
+    // Check cache first
+    if (predictions[cacheKey]) {
+      return predictions[cacheKey];
+    }
+
     try {
-      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('predictions')
         .select('*')
         .eq('persona_id', personaId)
-        .eq('prediction_date', today)
+        .eq('prediction_date', dateStr)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      console.log('Loaded prediction for today:', data);
-      setCurrentPrediction(data || null);
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      // Cache the result
+      setPredictions(prev => ({
+        ...prev,
+        [cacheKey]: data
+      }));
+
+      return data;
     } catch (error) {
       console.error('Error loading prediction:', error);
+      return null;
     }
-  }, []);
+  };
 
+  // Load prediction when selectedPersona or selectedDate changes
   useEffect(() => {
-    if (selectedPersona && user) {
-      console.log('Loading prediction for selected persona:', selectedPersona.id);
-      loadTodaysPrediction(selectedPersona.id);
-    }
-  }, [selectedPersona, user, loadTodaysPrediction]);
+    if (!selectedPersona) return;
+    
+    const loadCurrentPrediction = async () => {
+      const prediction = await loadPrediction(selectedPersona.id, selectedDate);
+      // Update current prediction state for compatibility
+      setCurrentPrediction(prediction);
+    };
+
+    loadCurrentPrediction();
+  }, [selectedPersona, selectedDate]);
 
   const handleCreatePersona = async (newPersona: any) => {
     if (!user) {
@@ -238,10 +246,6 @@ const Index = () => {
       await loadPersonas();
       setSelectedPersona(data);
       
-      // Also reload prediction for the new persona
-      if (data?.id) {
-        await loadTodaysPrediction(data.id);
-      }
       toast({
         title: "Персонаж создан! ✨",
         description: `${newPersona.name} готов к получению прогнозов`,
@@ -280,10 +284,6 @@ const Index = () => {
       await loadPersonas();
       setEditingPersona(null);
       
-      // Reload prediction if this was the selected persona
-      if (selectedPersona?.id === updatedPersona.id) {
-        await loadTodaysPrediction(updatedPersona.id);
-      }
       toast({
         title: "Персонаж обновлён! ✨",
         description: `${updatedPersona.name} успешно отредактирован`,
@@ -346,19 +346,31 @@ const Index = () => {
     setIsCreateModalOpen(false);
   };
 
-  const handleGeneratePrediction = async () => {
+  const handleGeneratePrediction = async (date?: Date) => {
     if (!selectedPersona) return;
     
+    const targetDate = date || selectedDate;
     setIsLoadingPrediction(true);
     
     try {
       const { data, error } = await supabase.functions.invoke('generate-prediction', {
-        body: { persona: selectedPersona }
+        body: { 
+          persona: selectedPersona,
+          prediction_date: targetDate.toISOString().split('T')[0]
+        }
       });
 
       if (error) throw error;
 
+      // Update cache and current prediction
+      const dateStr = targetDate.toISOString().split('T')[0];
+      const cacheKey = `${selectedPersona.id}-${dateStr}`;
+      setPredictions(prev => ({
+        ...prev,
+        [cacheKey]: data.prediction
+      }));
       setCurrentPrediction(data.prediction);
+      
       toast({
         title: "Прогноз готов! 🔮",
         description: "Звёзды поделились своими тайнами",
@@ -367,7 +379,7 @@ const Index = () => {
       console.error('Error generating prediction:', error);
       toast({
         title: "Ошибка генерации",
-        description: "Попробуйте позже или проверьте настройки AI",
+        description: error.message || "Попробуйте позже или проверьте настройки AI",
         variant: "destructive"
       });
     } finally {
@@ -472,56 +484,54 @@ const Index = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(() => {
-                  console.log('🎨 Rendering personas:', personas, 'Count:', personas.length);
-                  return personas.map((persona) => {
-                    console.log('🎭 Rendering persona:', persona.name, persona.id);
-                    return (
-                      <PersonaCard
-                        key={persona.id}
-                        persona={persona}
-                        isSelected={selectedPersona?.id === persona.id}
-                        onClick={() => setSelectedPersona(persona)}
-                        onEdit={openEditModal}
-                        onDelete={openDeleteDialog}
-                      />
-                    );
-                  });
-                })()}
+                {personas.map((persona) => (
+                  <PersonaCard
+                    key={persona.id}
+                    persona={persona}
+                    isSelected={selectedPersona?.id === persona.id}
+                    onClick={() => setSelectedPersona(persona)}
+                    onEdit={openEditModal}
+                    onDelete={openDeleteDialog}
+                  />
+                ))}
               </div>
               
-              {personas.length === 0 && (() => {
-                console.log('⚠️ No personas to display, user:', user?.id, 'personas array:', personas);
-                return (
-                  <div className="text-center py-12">
-                    <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <p className="text-muted-foreground">
-                      Создайте своего первого астро-персонажа
-                    </p>
-                  </div>
-                );
-              })()}
+              {personas.length === 0 && (
+                <div className="text-center py-12">
+                  <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">
+                    Создайте своего первого астро-персонажа
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Прогноз дня */}
+            {/* Календарь и прогноз */}
             {selectedPersona && (
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                  <h2 className="text-xl font-semibold text-foreground">
-                    Прогноз для {selectedPersona.name}
-                  </h2>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>Сегодня</span>
-                  </div>
+              <div className="grid lg:grid-cols-2 gap-8">
+                {/* Calendar Section */}
+                <div>
+                  <PredictionCalendar
+                    selectedPersona={selectedPersona}
+                    onDateSelect={setSelectedDate}
+                    selectedDate={selectedDate}
+                    onGeneratePrediction={handleGeneratePrediction}
+                    isLoading={isLoadingPrediction}
+                  />
                 </div>
-                
-                <PredictionCard
-                  prediction={currentPrediction}
-                  isLoading={isLoadingPrediction}
-                  onGenerate={handleGeneratePrediction}
-                  onFeedback={handleFeedback}
-                />
+
+                {/* Prediction Section */}
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground mb-4">
+                    Прогноз на {selectedDate.toLocaleDateString('ru-RU')}
+                  </h3>
+                  <PredictionCard 
+                    prediction={currentPrediction} 
+                    isLoading={isLoadingPrediction}
+                    onGenerate={() => handleGeneratePrediction(selectedDate)}
+                    onFeedback={handleFeedback}
+                  />
+                </div>
               </div>
             )}
           </>
