@@ -530,6 +530,8 @@ const Index = () => {
                     isLoading={isLoadingPrediction}
                     onGenerate={() => handleGeneratePrediction(selectedDate)}
                     onFeedback={handleFeedback}
+                    selectedDate={selectedDate}
+                    selectedPersona={selectedPersona}
                   />
                 </div>
               </div>

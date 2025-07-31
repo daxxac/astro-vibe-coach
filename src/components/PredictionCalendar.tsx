@@ -85,103 +85,76 @@ export function PredictionCalendar({
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg">Календарь прогнозов</CardTitle>
-        <CardDescription>
-          Выберите дату для просмотра или создания прогноза
-          {dailyLimit > 0 && (
-            <div className="text-sm mt-2 text-amber-600">
-              Использовано прогнозов сегодня: {dailyLimit}/3
-            </div>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "PPP", { locale: ru }) : "Выберите дату"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && onDateSelect(date)}
-                initialFocus
-                className="pointer-events-auto"
-                modifiers={{
-                  hasPrediction: (date) => hasPrediction(date),
-                  canGenerate: (date) => canGenerateForDate(date),
-                  isToday: (date) => date.toDateString() === today.toDateString()
-                }}
-                modifiersStyles={{
-                  hasPrediction: { 
-                    backgroundColor: 'hsl(var(--primary))', 
-                    color: 'hsl(var(--primary-foreground))',
-                    fontWeight: 'bold'
-                  },
-                  canGenerate: { 
-                    backgroundColor: 'hsl(var(--secondary))',
-                    color: 'hsl(var(--secondary-foreground))'
-                  },
-                  isToday: {
-                    outline: '2px solid hsl(var(--primary))',
-                    outlineOffset: '2px'
-                  }
-                }}
-                locale={ru}
-              />
-              <div className="p-3 border-t text-xs text-muted-foreground">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-primary"></div>
-                    <span>Есть прогноз</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-secondary"></div>
-                    <span>Можно создать прогноз</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded border-2 border-primary"></div>
-                    <span>Сегодня</span>
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Action buttons */}
-          <div className="space-y-2">
-            {hasPrediction(selectedDate) ? (
-              <Button variant="outline" className="w-full" disabled>
-                Прогноз уже существует
-              </Button>
-            ) : canGenerateForDate(selectedDate) ? (
-              <Button 
-                onClick={() => onGeneratePrediction(selectedDate)}
-                disabled={isLoading}
-                className="w-full btn-cosmic"
-              >
-                {isLoading ? 'Создаём прогноз...' : 'Создать прогноз'}
-              </Button>
-            ) : (
-              <Button variant="outline" className="w-full" disabled>
-                {selectedDate < today ? 'Прогнозы для прошлого недоступны' : 'Лимит прогнозов исчерпан'}
-              </Button>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-foreground">Дата прогноза</span>
+        {dailyLimit > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {dailyLimit}/3 прогнозов сегодня
+          </span>
+        )}
+      </div>
+      
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !selectedDate && "text-muted-foreground"
             )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {selectedDate ? format(selectedDate, "PPP", { locale: ru }) : "Выберите дату"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(date) => date && onDateSelect(date)}
+            initialFocus
+            className="pointer-events-auto"
+            modifiers={{
+              hasPrediction: (date) => hasPrediction(date),
+              canGenerate: (date) => canGenerateForDate(date),
+              isToday: (date) => date.toDateString() === today.toDateString()
+            }}
+            modifiersStyles={{
+              hasPrediction: { 
+                backgroundColor: 'hsl(var(--primary))', 
+                color: 'hsl(var(--primary-foreground))',
+                fontWeight: 'bold'
+              },
+              canGenerate: { 
+                backgroundColor: 'hsl(var(--secondary))',
+                color: 'hsl(var(--secondary-foreground))'
+              },
+              isToday: {
+                outline: '2px solid hsl(var(--primary))',
+                outlineOffset: '2px'
+              }
+            }}
+            locale={ru}
+          />
+          <div className="p-3 border-t text-xs text-muted-foreground">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-primary"></div>
+                <span>Есть прогноз</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-secondary"></div>
+                <span>Можно создать прогноз</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded border-2 border-primary"></div>
+                <span>Сегодня</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }

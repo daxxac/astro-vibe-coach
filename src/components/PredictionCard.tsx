@@ -34,15 +34,37 @@ interface PredictionCardProps {
   isLoading?: boolean;
   onGenerate?: () => void;
   onFeedback?: (type: 'positive' | 'negative' | 'neutral') => void;
+  selectedDate?: Date;
+  selectedPersona?: any;
 }
 
 export const PredictionCard = ({ 
   prediction, 
   isLoading = false, 
   onGenerate,
-  onFeedback 
+  onFeedback,
+  selectedDate,
+  selectedPersona
 }: PredictionCardProps) => {
+  // Helper functions for date validation
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const isDateInPast = (date: Date) => {
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate < today;
+  };
+
+  const canGenerateForDate = (date: Date) => {
+    return !isDateInPast(date);
+  };
+
   if (!prediction && !isLoading) {
+    // Show different messages based on date
+    const isPastDate = selectedDate && isDateInPast(selectedDate);
+    const canGenerate = selectedDate && canGenerateForDate(selectedDate);
+
     return (
       <Card className="glass-card p-6 text-center">
         <div className="mb-6">
@@ -50,20 +72,25 @@ export const PredictionCard = ({
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h3 className="text-xl font-semibold text-cosmic mb-2">
-            Узнайте что готовят звёзды
+            {isPastDate ? "Прогноз недоступен" : "Узнайте что готовят звёзды"}
           </h3>
           <p className="text-muted-foreground">
-            Персональный прогноз на сегодня ждёт вас
+            {isPastDate 
+              ? "Прогнозы доступны только на сегодня и будущие даты"
+              : "Персональный прогноз ждёт вас"
+            }
           </p>
         </div>
         
-        <Button 
-          onClick={onGenerate}
-          className="btn-cosmic w-full py-3"
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          Получить прогноз
-        </Button>
+        {canGenerate && (
+          <Button 
+            onClick={onGenerate}
+            className="btn-cosmic w-full py-3"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Создать прогноз
+          </Button>
+        )}
       </Card>
     );
   }
